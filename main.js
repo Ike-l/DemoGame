@@ -492,4 +492,14 @@ function main() {
     CRAWLER_INTERFACE.UTILITY.Utility.Loop(Draw, Infinity, true, before, after)
 }
 
-setTimeout(main, 5000)
+let repeat = setInterval(() => {
+    try {
+        if (CRAWLER_RENDERER != undefined) {
+            if (CRAWLER_RENDERER.CONSTANTS != undefined) {
+                clearInterval(repeat)
+                main()
+                console.log("Loaded")
+            } 
+        }
+    } catch {}
+}, 50)
