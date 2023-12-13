@@ -1,4 +1,5 @@
 function main() {
+    // unpack some constants
     const TriangleListShapes = CRAWLER_RENDERER.CONSTANTS.TriangleListShapes
     const TriangleListShapes2 = CRAWLER_RENDERER.CONSTANTS.TriangleListShapes2
     const LineListShapes = CRAWLER_RENDERER.CONSTANTS.LineListShapes
@@ -6,9 +7,14 @@ function main() {
     const sLights = CRAWLER_RENDERER.CONSTANTS.LIGHTS.Spot
     const dLights = CRAWLER_RENDERER.CONSTANTS.LIGHTS.Directional
     const Draw = CRAWLER_RENDERER.DRAW.Draw
+    const Sphere = CRAWLER_RENDERER.SHAPES.THREED.Sphere
+    const Material = CRAWLER_RENDERER.MATERIALS.Material
+    // set the background colour
     CRAWLER_RENDERER.CONSTANTS.skyColour = { r: 0.1, g: 0.1, b: 0.1, a: 1 }
     //CRAWLER_RENDERER.CONSTANTS.skyColour = {r: 0.523, g: 0.808, b: 0.922, a: 1}
     // camera: UpdateVariableBuffers 
+
+    // player with no restrictions
     class CreativePlayer extends CRAWLER_RENDERER.WORLD.Controller {
         constructor(parameters = {}) {
             super(parameters)
@@ -33,18 +39,22 @@ function main() {
         set ObjectTemplate(objTemplate) {
             this.objectTemplate = objTemplate
         }
+        // override some default behaviour
         EnableResize() {
             this.Camera.UpdateAspectRatio()
         }
         EnableWheel(evt) {
             this.Camera.Range += -evt.deltaY / 100
         }
+        // add a keybind for 1 
         EnableDigit1(evt) {
+            // only works when intensity 0 -> 1
             this.Camera.Torch.Intensity = 1 - this.Camera.Torch.Intensity
         }
         EnableDigit2() {
             this.ToggleBuildMode()
         }
+        // add a keybind for 1 on numpad
         EnableNumpad1() {
             this.SwitchObject("Cube")
         }
@@ -55,12 +65,14 @@ function main() {
             this.SwitchObject("Cylinder")
         }
         EnableShiftRight() {
+            // turns off all components visibility
             Object.values(CRAWLER_GAME_ENGINE.InterfaceComponents).forEach(x => {
                 x.TurnCompletelyVisibility(false)
             })
         }
         EnableControlRight() {
             Object.values(CRAWLER_GAME_ENGINE.InterfaceComponents).forEach(x => {
+            // turns on all components visibility
                 x.TurnCompletelyVisibility(true)
                 CRAWLER_GAME_ENGINE.InterfaceComponents.shapeRectangle._UpdateText()
             })
@@ -94,6 +106,7 @@ function main() {
                     if (currentStepDistances.length > 0) {
                         const closest = currentStepDistances.sort((a, b) => a[1] - b[1])[0]
                         const index = closest[0]
+                        // "creative mode" do Infinite damage
                         TriangleListShapes[index]?.EnableClick(evt, {damage: Infinity})
                         return
                     }
@@ -160,6 +173,7 @@ function main() {
             }
         }
     }
+    // player with limited building, cannot move vertically and uses tools to destroy
     class SurvivalPlayer extends CRAWLER_RENDERER.WORLD.Controller {
         constructor(parameters = {}) {
             super(parameters)
@@ -192,6 +206,7 @@ function main() {
         }
         EnableKeyW(evt) {
             if (this.Focused) {
+                // prevent horizontal moving
                 const vec = this.Camera.ForwardVector
                 vec[1] = 0
                 this.Camera.Move(vec, 1)
@@ -199,21 +214,25 @@ function main() {
         }
         EnableKeyS(evt) {
             if (this.Focused) {
+                // prevent horizontal moving
                 const vec = this.Camera.ForwardVector
                 vec[1] = 0
                 this.Camera.Move(vec, -1)
             }
         }
         EnableSpace(evt) {
+                // prevent horizontal moving
     
         }
         EnableShiftLeft(evt) {
+                // prevent horizontal moving
     
         }
         EnableWheel(evt) {
             this.Camera.Range += -evt.deltaY / 100
         }
         EnableDigit1(evt) {
+            // only works when intensity 0 -> 1
             this.Camera.Torch.Intensity = 1 - this.Camera.Torch.Intensity
         }
         EnableDigit2() {
@@ -245,6 +264,7 @@ function main() {
                 console.log(index)
                 console.log(x)
             })
+            // removes all shape components
             Object.values(CRAWLER_GAME_ENGINE.InterfaceComponents).forEach((x, index) => {
                 if (nonShapeComponents.some(y => {
                     return y == index
@@ -265,8 +285,7 @@ function main() {
         }
         PlaceObject() {
             if (this.Item) {
-                if (this.Item.count - 1 >= 0) {
-                    this.Item.count--
+                if (this.Item.count-- >= 0) {
                     CRAWLER_RENDERER.CONSTANTS.TriangleListShapes.push(new this.Item.item({label: "Placed", translation: this.Camera.PositionInFront(this.Camera.Range)}))
                     console.log("Item count:", this.Item.count)
                     if (this.Item.count == 0) {
@@ -385,6 +404,7 @@ function main() {
         }
         DestroyBlock(evt, args = {}) {
             const index = this[args.type].indexOf(args.item)
+            // no negative indexing
             if (index >= 0) {
                 this[args.type].splice(index, 1)
             }
@@ -422,7 +442,7 @@ function main() {
         static Axe = { Damage: 3 }
     }
     window.camera = new CRAWLER_RENDERER.WORLD.Camera({ position: [0, 2, 0], lookingAt: [0, 2, 0], range: 5 })
-    window.player = new SurvivalPlayer({ camera: camera })
+    window.player = new CreativePlayer({ camera: camera })
     
     //dLights.push(new CRAWLER_RENDERER.LIGHTS.DIRECTIONAL.DefaultDirectionalLight({position: [1000, 1000, 0], colour: [0.523, 0.808, 0.922], intensity: 0.25, direction: [1, 1, 0]}))
     //TriangleListShapes.push(new CRAWLER_RENDERER.SHAPES.THREED.Sphere({label: "Sun", quality: 40, translation: [1000, 1000, 0], stretch: [100, 100, 100], material: new CRAWLER_RENDERER.MATERIALS.Material({shininess: 1, ambience: [1, 1, 1]})}))
@@ -432,32 +452,24 @@ function main() {
     camera.Torch = sLights[0]
     
     
+
+    const root = new Wood({translation: [3, 1, 3]})
+    window.tree = new Tree({root: root})
     
-    // if player has axe damage increase
-    // make a starter house from another wood and leaves 
-    // lerp movement? probs not
-    // const root = new Wood({translation: [3, 1, 3]})
-    // window.tree = new Tree({root: root})
+    const root1 = new Wood({translation: [-3, 1, 3]})
+    const tree1 = new Tree({root: root1})
     
-    // const root1 = new Wood({translation: [-3, 1, 3]})
-    // const tree1 = new Tree({root: root1})
+    const root2 = new Wood({translation: [3, 1, -3]})
+    const tree2 = new Tree({root: root2})
     
-    // const root2 = new Wood({translation: [3, 1, -3]})
-    // const tree2 = new Tree({root: root2})
-    
-    // TriangleListShapes.push(new CRAWLER_RENDERER.SHAPES.THREED.Cube({
-    //     label: "FirstObject",
-    //     translation: [1, 2, 3],
-    // }))
-    // TriangleListShapes.push(new CRAWLER_RENDERER.SHAPES.THREED.Cube({
-    //     label: "SecondObject",
-    //     translation: [3, 2, 1],
-    // }))
-    
-    
-    
-    
-    
+    TriangleListShapes.push(new CRAWLER_RENDERER.SHAPES.THREED.Cube({
+        label: "FirstObject",
+        translation: [1, 2, 3],
+    }))
+    TriangleListShapes.push(new CRAWLER_RENDERER.SHAPES.THREED.Cube({
+        label: "SecondObject",
+        translation: [3, 2, 1],
+    }))
     
     
     
@@ -467,6 +479,7 @@ function main() {
     CRAWLER_GAME_ENGINE.InterfaceComponents.shapeRectangle._UpdateText()
     CRAWLER_GAME_ENGINE.InterfaceComponents.lightRectangle._UpdateText()
     //TriangleListShapes2.push(new CRAWLER_RENDERER.SHAPES.THREED.Cube({ translation: [1, 1, 1], label: "Cube"}) )
+    // for the create shapes, my custom templates but its just a mapping
     CRAWLER_GAME_ENGINE.ShapeMapping = {
         "Cube": {
             constructor: CRAWLER_RENDERER.SHAPES.THREED.Cube,
@@ -493,13 +506,12 @@ function main() {
 }
 
 let repeat = setInterval(() => {
-    try {
-        if (CRAWLER_RENDERER != undefined) {
+    // used typeof so no error is thrown
+        if (typeof CRAWLER_RENDERER != "undefined") {
             if (CRAWLER_RENDERER.CONSTANTS != undefined) {
                 clearInterval(repeat)
                 main()
                 console.log("Loaded")
             } 
         }
-    } catch {}
 }, 50)
